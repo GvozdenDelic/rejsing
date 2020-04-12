@@ -1,0 +1,25 @@
+body {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+canvas {
+    margin-left: 25vw;
+    height:100vh;
+    width: 50vw;
+    border:1px solid #d3d3d3;
+    background-color: #fff;
+}
+
+.gui {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 25%;
+    height: 100vh;
+    color:black;
+    text-align: center;
+}

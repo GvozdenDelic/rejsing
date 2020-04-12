@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="stylesheet" type="text/css" href="app/css/speedometer.css">
+<link rel="stylesheet" type="text/css" href="app/css/styles.css">
+</head>
+<body onload="startGame()">
+<script src="app/js/lib/jquery.js"></script>
+<script src="app/js/lib/speedometer.js"></script>
+
+<script>
+var myGamePiece;
+
+function startGame() {
+    myGamePiece = new component(111, 212, "app/images/mitsubishi.png", 450, 550, "image");
+    myBackground = new component(768, 958, "app/images/road.jpg", 0, 0, "background");
+    myGameArea.start();
+}
+
+var myGameArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 683;
+        this.canvas.height = 768;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.frameNo = 0;
+        this.interval = setInterval(updateGameArea, 20);
+        window.addEventListener('keydown', function (e) {
+            e.preventDefault();
+            myGameArea.keys = (myGameArea.keys || []);
+            myGameArea.keys[e.keyCode] = (e.type == "keydown");
+        })
+        window.addEventListener('keyup', function (e) {
+            myGameArea.keys[e.keyCode] = (e.type == "keydown");
+        })
+    },
+    stop : function() {
+        clearInterval(this.interval);
+    },    
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
+
+function component(width, height, color, x, y, type) {
+
+    this.type = type;
+    if (type == "image" || type == "background") {
+        this.image = new Image();
+        this.image.src = color;
+    }
+    this.width = width;
+    this.height = height;
+    this.speed = 0;
+    this.angle = 0;
+    this.moveAngle = 0;
+    this.cornerleft = 0;
+    this.cornerright = 0;
+    this.x = x;
+    this.y = y;
+    this.speedX = 0;
+    this.speedY = 0;   
+
+    this.currentspeed = 0;
+    this.acceleration = 10;
+    this.handling = 3;
+    this.topspeed = 24;
+
+    this.update = function() {
+        ctx = myGameArea.context;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.translate(-this.x -55, -this.y - 80);
+
+        if (type == "image" || type == "background") {
+            ctx.drawImage(this.image, 
+                this.x, 
+                this.y,
+                this.width, this.height);
+
+            if (type == "background") {
+                ctx.drawImage(this.image, 
+                    this.speedX, 
+                    this.speedY,
+                    this.width, this.height);
+            }
+        } else {
+            ctx.fillStyle = color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        } 
+        ctx.restore();  
+    }
+    this.newPos = function() {
+        this.angle += this.moveAngle * Math.PI / 180;
+        this.x += this.speed * Math.sin(this.angle);
+        this.y -= this.speed * Math.cos(this.angle);
+
+        if (this.type == "background") {
+
+            if (this.y == 500) {
+                this.y = 0;
+            }
+        }
+    }
+}
+
+function updateGameArea() {
+    myGameArea.clear();
+    myGamePiece.moveAngle = 0;
+    myGamePiece.speed = 0;
+
+    // levo
+    if (myGameArea.keys && myGameArea.keys[37] && myGamePiece.currentspeed > 0.02) {
+        if(0.4 + myGamePiece.topspeed/myGamePiece.currentspeed < myGamePiece.handling){
+            myGamePiece.moveAngle = - ((0.4 + myGamePiece.topspeed/myGamePiece.currentspeed) * myGamePiece.cornerleft);
+        } else {
+            myGamePiece.moveAngle = -myGamePiece.handling * myGamePiece.cornerleft;
+        }
+
+        if(myGamePiece.cornerleft < 1) {
+            myGamePiece.cornerleft = myGamePiece.cornerleft + 0.1;
+        }
+    } else if(myGamePiece.cornerleft > 0) {
+        myGamePiece.cornerleft = myGamePiece.cornerleft - 0.15;
+    } else {
+        myGamePiece.cornerleft = 0;
+    }
+
+    // desno
+    if (myGameArea.keys && myGameArea.keys[39] && myGamePiece.currentspeed > 0.02) {
+        if(0.4 + myGamePiece.topspeed/myGamePiece.currentspeed < myGamePiece.handling){
+            myGamePiece.moveAngle = 0.4 + myGamePiece.topspeed/myGamePiece.currentspeed * myGamePiece.cornerright;
+        } else {
+            myGamePiece.moveAngle = myGamePiece.handling * myGamePiece.cornerright;
+        }
+
+        if(myGamePiece.cornerright < 1) {
+            myGamePiece.cornerright = myGamePiece.cornerright + 0.1;
+        }
+    } else if(myGamePiece.cornerright > 0) {
+        myGamePiece.cornerright = myGamePiece.cornerright - 0.15;
+    } else {
+        myGamePiece.cornerright = 0;
+    }
+
+    // napred
+    if (myGameArea.keys && myGameArea.keys[38]) {
+        myGamePiece.currentspeed = myGamePiece.currentspeed + ((myGamePiece.topspeed - myGamePiece.currentspeed)/myGamePiece.topspeed)/12; 
+    } else {
+        myGamePiece.currentspeed = myGamePiece.currentspeed - 0.015;
+    }
+
+    // nazad
+    if (myGameArea.keys && myGameArea.keys[40]) {myGamePiece.currentspeed = myGamePiece.currentspeed - 0.25; }
+
+    if(myGamePiece.currentspeed < 0) {
+        myGamePiece.currentspeed = 0;
+    }
+
+    if(myGamePiece.currentspeed > myGamePiece.topspeed) {
+        myGamePiece.currentspeed = myGamePiece.topspeed;
+    } 
+
+    myGamePiece.speed= myGamePiece.currentspeed;
+
+    $('#demo').val(Math.round(myGamePiece.currentspeed * 10));
+    $('.speedPosition').html(Math.round(myGamePiece.currentspeed * 10));
+
+    var speedInDeg = (270/240) *Math.round(myGamePiece.currentspeed * 10) - 45;
+
+    $('.speedNobe').css({
+      "transform"      :'rotate('+speedInDeg+'deg)'
+    });
+    
+    myBackground.newPos();    
+    myBackground.update();
+
+    myGamePiece.y = myGamePiece.y + myGamePiece.currentspeed;
+    if(myGamePiece.y > 600) {
+        myGamePiece.y = 600;
+    }
+
+    myBackground.y = myBackground.speedY + (myGamePiece.currentspeed * Math.cos(myGamePiece.angle)) - myBackground.height;
+    myBackground.speedY = myBackground.speedY + (myGamePiece.currentspeed * Math.cos(myGamePiece.angle));
+    if(myBackground.speedY > 958){myBackground.speedY = 0;}
+    myGamePiece.newPos();
+    myGamePiece.update();
+}
+
+</script>
+
+<div class="gui">
+    <div class="speed" data-speed="">
+
+        <input type="hidden" id="demo" />
+
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        $("#demo").myfunc({divFact:20, maxVal:240, eventListenerType:'change'});
+    });
+    </script>
+</body>
+</html>
